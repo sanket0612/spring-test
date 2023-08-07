@@ -27,8 +27,12 @@ jobs:
             console.log(github.run_id);
             console.log(context.workflow);
             const { data } =
-                await github.rest.actions.listWorkflowRunsForRepo({
+                await github.rest.actions.listWorkflowRuns({
                   owner: context.repo.owner,
-                  repo: context.repo.repo
+                  repo: context.repo.repo,
+                  workflow_id: 65527582,
+                  branch: main,
+                  event: push,
+                  per_page: 5
                 });
               console.log(data)
