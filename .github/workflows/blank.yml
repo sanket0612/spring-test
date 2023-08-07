@@ -25,9 +25,8 @@ jobs:
           script: |
             console.log(`current event: ${context.eventName}`);
             const { data } =
-                await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                await github.rest.repos.listWorkflowRunsForRepo({
                   owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  commit_sha: context.sha,
+                  repo: context.repo.repo
                 });
               console.log(data)
