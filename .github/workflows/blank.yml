@@ -33,6 +33,18 @@ jobs:
                   workflow_id: 65527582,
                   branch: 'main',
                   event: 'push',
-                  per_page: 5
+                  per_page: 5,
+                  status: 'completed'
                 });
               console.log(data)
+    
+
+  some-failure:
+    name: Init canary release 2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clean working directory
+        shell: bash
+        run: |
+          exit 1
