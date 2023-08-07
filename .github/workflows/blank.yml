@@ -31,8 +31,8 @@ jobs:
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   workflow_id: 65527582,
-                  branch: main,
-                  event: push,
+                  branch: 'main',
+                  event: 'push',
                   per_page: 5
                 });
               console.log(data)
