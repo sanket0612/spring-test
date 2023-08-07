@@ -24,8 +24,10 @@ jobs:
         with:
           script: |
             console.log(`current event: ${context.eventName}`);
+            console.log(github.run_id);
+            console.log(context.workflow);
             const { data } =
-                await github.rest.repos.listWorkflowRunsForRepo({
+                await github.rest.actions.listWorkflowRunsForRepo({
                   owner: context.repo.owner,
                   repo: context.repo.repo
                 });
