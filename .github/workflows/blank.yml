@@ -21,39 +21,71 @@ jobs:
       CURRENT_RUN_LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       CURRENT_PR_NUMBER: ${{ github.event.pull_request.number }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          path: master
       - name: Git checkout
         uses: actions/checkout@v2
         with:
           fetch-depth: '0'
-      - name: git
-        run: |
-          # setup the username and email. I tend to use 'GitHub Actions Bot' with no email by default
-          git --version
-
-      - name: git stuff
-        run: |
-          echo $BRANCH_NAME
-          git merge-base master $BRANCH_NAME
-
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
 
       - uses: actions/github-script@v6
         with:
           script: |
-            console.log(`current event: ${context.eventName}`);
-            const { data } =
-                await github.rest.actions.listWorkflowRuns({
+            const { data } = await github.rest.actions.listWorkflowRuns({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   workflow_id: 65527582,
                   branch: 'main',
                   event: 'push',
-                  per_page: 5,
+                  per_page: 10,
                   status: 'completed'
                 });
+            let latestRun = data.workflow_runs[0].conclusion
+            let message = `Comparing with Master Build.`
+            switch(latestRun) {
+              case 'failure':
+                console.log("Determining the first failure pipeline")
+                let current_data = data
+                while(current_data.workflow_runs[current_data.total_count-1].conclusion == 'failure') {
+                  console.log("Searching for previous failure runs")
+                  current_data = await github.rest.actions.listWorkflowRuns({
+                                    owner: context.repo.owner,
+                                    repo: context.repo.repo,
+                                    workflow_id: 65527582,
+                                    branch: 'main',
+                                    event: 'push',
+                                    per_page: 10,
+                                    status: 'completed'
+                                  });
+                  
+                }
+                let firstFailureRun = current_data.workflow_runs.reverse().find((x,i) => x.conclusion=='failure');
+                //find failing step
+                await github.rest.actions.listJobsForWorkflowRun({
+                                 owner: context.repo.owner,
+                                 repo: context.repo.repo,
+                                 run_id: firstFailureRun.id
+                                }).then(data => {
+                                    var fail_job = data.data.jobs.find((x,i) => x.conclusion == 'failure');
+                                    console.log(fail_job.run_url)
+                                    console.log(fail_job.head_sha)
+                                    message += `⚠️ The master build is failing at job [link](${fail_job.run_url}) and for commit_sha ${fail_job.head_sha}. Try reaching out author firstFailureRun.actor.login`
+                                    return fail_job
+                                })
+                
+                break;
+              case 'success':
+                console.log("Master builds are successful")
+                message += "Master builds are successful"
+                break;
+              default:
+                console.log("Could not determine latest workflow run conclusion")
+                message += "Could not determine latest workflow run conclusion"
+            }
+            
+            const {CURRENT_PR_NUMBER} = process.env
+            console.log(message)
+            github.rest.issues.createComment({
+              issue_number: CURRENT_PR_NUMBER,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message,
+            })
