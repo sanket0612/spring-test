@@ -15,7 +15,7 @@ defaults:
 jobs:
   check_main_build_status:
     name: Check main Build status
-    runs-on: [size-s]
+    runs-on: ubuntu-latest
     env:
       CURRENT_PR_NUMBER: ${{ github.event.pull_request.number }}
       BUILD_AND_TEST_WORKFLOW_ID: 65527582
