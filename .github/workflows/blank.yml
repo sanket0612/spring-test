@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
+
 defaults:
   run:
     shell: bash
@@ -13,9 +17,23 @@ jobs:
     name: Init canary release
     runs-on: ubuntu-latest
     env:
+      BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
       CURRENT_RUN_LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       CURRENT_PR_NUMBER: ${{ github.event.pull_request.number }}
     steps:
+      - name: Install git
+        run: |
+          apt-get install -y git
+          git --version
+          echo "Path is ... $PATH"
+          PATH=$PATH:$(which git)
+          echo "Path is ... $PATH"
+
+      - name: git stuff
+        run: |
+          echo $BRANCH_NAME
+          git merge-base main $BRANCH_NAME
+
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
@@ -24,8 +42,6 @@ jobs:
         with:
           script: |
             console.log(`current event: ${context.eventName}`);
-            console.log(github.run_id);
-            console.log(context.workflow);
             const { data } =
                 await github.rest.actions.listWorkflowRuns({
                   owner: context.repo.owner,
@@ -36,15 +52,3 @@ jobs:
                   per_page: 5,
                   status: 'completed'
                 });
-              console.log(data)
-    
-
-  some-failure:
-    name: Init canary release 2
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Clean working directory
-        shell: bash
-        run: |
-          exit 1
