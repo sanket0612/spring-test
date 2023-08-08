@@ -33,7 +33,7 @@ jobs:
       - name: git stuff
         run: |
           echo $BRANCH_NAME
-          git merge-base main $BRANCH_NAME
+          git merge-base master $BRANCH_NAME
 
       - uses: actions/checkout@v3
         with:
