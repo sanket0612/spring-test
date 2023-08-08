@@ -1,91 +1,96 @@
-name: Test
-run-name: Test
+---
+
+name: Notify PRs about main Build
 on:
-  push:
-    branches:
-      - master
   pull_request:
-    branches:
-      - master
+    types:
+      - opened
+      - synchronize
+      - reopened
 
 defaults:
   run:
     shell: bash
 
 jobs:
-  init_canary_release:
-    name: Init canary release
-    runs-on: ubuntu-latest
+  check_main_build_status:
+    name: Check main Build status
+    runs-on: [size-s]
     env:
-      BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
-      CURRENT_RUN_LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       CURRENT_PR_NUMBER: ${{ github.event.pull_request.number }}
+      BUILD_AND_TEST_WORKFLOW_ID: 65527582
     steps:
       - name: Git checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
-          fetch-depth: '0'
+          sparse-checkout: .github
 
       - uses: actions/github-script@v6
         with:
           script: |
-            const { data } = await github.rest.actions.listWorkflowRuns({
+            console.log("Fetching the latest 10 main branch server_build_and_test Github Worklows which are completed")
+            
+            const { workflowRuns } = await github.rest.actions.listWorkflowRuns({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  workflow_id: 65527582,
+                  workflow_id: ${BUILD_AND_TEST_WORKFLOW_ID},
                   branch: 'main',
                   event: 'push',
                   per_page: 10,
                   status: 'completed'
                 });
-            let latestRun = data.workflow_runs[0].conclusion
-            let message = `Comparing with Master Build.`
+            let latestWorkflowRun = workflowRuns.workflow_runs[0].conclusion
+            console.log("The latest main build and test was completed with status ${latestWorkflowRun}")
+            
+            let message = `ℹ️Checking the main branch Build.`
+            
             switch(latestRun) {
               case 'failure':
-                console.log("Determining the first failure pipeline")
-                let current_data = data
-                while(current_data.workflow_runs[current_data.total_count-1].conclusion == 'failure') {
+                console.log("Determining the first failure of pipeline run for main branch build and test.")    
+                let currentWorkflowRun = workflowRuns
+                while(currentWorkflowRun.workflow_runs[currentWorkflowRun.total_count-1].conclusion == 'failure') {
                   console.log("Searching for previous failure runs")
-                  current_data = await github.rest.actions.listWorkflowRuns({
+                  currentWorkflowRun = await github.rest.actions.listWorkflowRuns({
                                     owner: context.repo.owner,
                                     repo: context.repo.repo,
-                                    workflow_id: 65527582,
+                                    workflow_id: ${BUILD_AND_TEST_WORKFLOW_ID},
                                     branch: 'main',
                                     event: 'push',
                                     per_page: 10,
                                     status: 'completed'
                                   });
-                  
+            
                 }
-                let firstFailureRun = current_data.workflow_runs.reverse().find((x,i) => x.conclusion=='failure');
-                //find failing step
+                let firstFailureRun = currentWorkflowRun.workflow_runs.reverse().find((x,i) => x.conclusion=='failure');
+                console.log("First failure for the main branch build and test was ${firstFailureRun.html_url}. Finding failing step...") 
+            
                 await github.rest.actions.listJobsForWorkflowRun({
                                  owner: context.repo.owner,
                                  repo: context.repo.repo,
                                  run_id: firstFailureRun.id
                                 }).then(data => {
                                     var fail_job = data.data.jobs.find((x,i) => x.conclusion == 'failure');
-                                    console.log(fail_job.run_url)
-                                    console.log(fail_job.head_sha)
-                                    message += `⚠️ The master build is failing at job [link](${fail_job.run_url}) and for commit_sha ${fail_job.head_sha}. Try reaching out author firstFailureRun.actor.login`
-                                    return fail_job
+                                    console.log("Failing step for first main branch build found")
+                                    message += `🚨 The main build is failing at job [link](${fail_job.run_url}) and for commit_sha ${fail_job.head_sha}. Try reaching out author ${firstFailureRun.actor.login} 🚨`
                                 })
-                
+            
                 break;
               case 'success':
-                console.log("Master builds are successful")
-                message += "Master builds are successful"
+                console.log("main builds are successful.")
+                message += "❇️ main builds are successful ❇️"
                 break;
               default:
                 console.log("Could not determine latest workflow run conclusion")
-                message += "Could not determine latest workflow run conclusion"
+                message += "⚠️ Could not determine latest main branch build and test workflow conclusion ⚠️"
             }
             
             const {CURRENT_PR_NUMBER} = process.env
-            console.log(message)
+            console.log(`Appending $message to the PR ${CURRENT_PR_NUMBER}`)
             github.rest.issues.createComment({
               issue_number: CURRENT_PR_NUMBER,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: message,
             })
+            
+            
