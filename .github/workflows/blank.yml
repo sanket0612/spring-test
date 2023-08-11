@@ -50,6 +50,7 @@ jobs:
             
             let MESSAGE = `ℹ️ Checking the current Master Branch Build status...  \n`
             
+            
             switch(LATEST_WORKFLOW_RUN_CONCLUSION) {
               case 'failure':
             
