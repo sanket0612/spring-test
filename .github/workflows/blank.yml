@@ -45,4 +45,11 @@ jobs:
                   status: 'completed'
                 });
             data.workflow_runs.forEach((x,i) => {console.log(x);console.log(i)})
+            FIRST_FAILURE_RUN_BEFORE_SUCCESS = data.workflow_runs[0]
+            data.workflow_runs.forEach((x, i) => {
+                if (i != 0 && x.conclusion === 'success') {
+                    FIRST_FAILURE_RUN_BEFORE_SUCCESS = data.workflow_runs[i-1]
+                    break
+                }
+            })
             
