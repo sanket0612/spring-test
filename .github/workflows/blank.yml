@@ -44,10 +44,14 @@ jobs:
                   per_page: 10,
                   status: 'completed'
                 });
-            if(data.total_count == 0){
-              console.log(`No builds found`)
-              return
+            for(int i = 1; i < 9; i++) {
+                  console.log(data.workflow_runs[i])
+                  if(data.workflow_runs[i].conclusion === 'success') {
+                    FIRST_FAILURE_RUN_BEFORE_SUCCESS = data.workflow_runs[i-1]
+                    break
+                  }
             }
+                
             let LATEST_WORKFLOW_RUN_CONCLUSION = data.workflow_runs[0].conclusion
             console.log(`The latest main build and test was completed with status: ${LATEST_WORKFLOW_RUN_CONCLUSION}`)
             
