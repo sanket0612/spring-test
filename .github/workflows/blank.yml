@@ -40,11 +40,4 @@ jobs:
                   status: 'completed'
                 });
             console.log(data)
-            const FIRST_FAILURE_RUN_BEFORE_SUCCESS = data.workflow_runs[0]
-            for(int i = 1; i < 3; i++){
-                  console.log(data.workflow_runs[i])
-                  if(data.workflow_runs[i].conclusion === 'success'){
-                    FIRST_FAILURE_RUN_BEFORE_SUCCESS = data.workflow_runs[i-1]
-                    break
-                  }
-             }
+            
