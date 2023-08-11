@@ -2,11 +2,14 @@
 
 name: Notify PRs about main Build
 on:
+  push:
+    branches:
+      - master
+      - release/FIX-**
+      - dumper/**
   pull_request:
-    types:
-      - opened
-      - synchronize
-      - reopened
+    branches:
+      - master
 
 defaults:
   run:
